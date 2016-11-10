@@ -3,6 +3,7 @@
 int main(int argc, char* argv[]){
   char* buffer = NULL;
   int client_socket;
+  daytime currentTime;
   struct sockaddr_in addr;
   memset(&addr, 0, sizeof(addr)); //Fill the struct with zeros
 
@@ -13,7 +14,10 @@ int main(int argc, char* argv[]){
   client_socket = connect_to_serv(addr);
 
   buffer = readLine(client_socket);
-  printf("%s\n",buffer );
+
+  currentTime = getTime(buffer);
+
+  printf("%d-%d-%d %d:%d:%d\n", currentTime.year, currentTime.month, currentTime.day, currentTime.hours, currentTime.minutes, currentTime.seconds);
 
   deconnect(client_socket);
 
@@ -65,4 +69,23 @@ char* readLine(int csocket){
   daytime[index-1] = '\0'; //End the string with terminating character
 
   return daytime; //Return the daytime
+}
+
+daytime getTime(char* timeString){
+  daytime currentTime;// = (daytime) malloc(sizeof(currentTime));
+
+  currentTime.year = getData(7 ,2, timeString);
+  currentTime.month = getData(10, 2, timeString);
+  currentTime.day = getData(13, 2, timeString);
+  currentTime.hours = getData(16, 2, timeString);
+  currentTime.minutes = getData(19, 2, timeString);
+  currentTime.seconds = getData(22, 2, timeString);
+
+  return currentTime;
+}
+
+int getData(int position, int size, char* string){
+  char* buffer = (char*)malloc(sizeof(char)*size);
+  memcpy(buffer, string+position, size);
+  return atoi(buffer);
 }

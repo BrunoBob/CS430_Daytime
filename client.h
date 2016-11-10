@@ -16,7 +16,20 @@
 #define MAX_DAYTIME_LENGTH 80
 #define OTM '*'
 
+typedef struct{
+  int year;
+  int month;
+  int day;
+  int hours;
+  int minutes;
+  int seconds;
+} daytime;
+
 int connect_to_serv(struct sockaddr_in addr);
 void deconnect(int csocket);
 
 char* readLine(int csocket);
+
+daytime getTime(char* timeString);
+
+int getData(int position, int size, char* string);

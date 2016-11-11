@@ -1,14 +1,14 @@
-COMPIL = gcc
-FLAG = -Wall
-NAME = client
+COMPIL_SERVER = gcc
+FLAG_SERVER = -Wall -pthread
+NAME_SERVER = server
 
-all: $(NAME)
+all: $(NAME_SERVER)
 
-$(NAME).o: $(NAME).h $(NAME).c
-	$(COMPIL) -c $(FLAG) $(NAME).c
+$(NAME_SERVER).o: $(NAME_SERVER).h $(NAME_SERVER).c
+	$(COMPIL_SERVER) -c $(FLAG_SERVER) $(NAME_SERVER).c
 
-$(NAME): $(NAME).o
-	$(COMPIL) $(FLAG) $(NAME).o -o $(NAME)
+$(NAME_SERVER): $(NAME_SERVER).o
+	$(COMPIL_SERVER) $(FLAG_SERVER) $(NAME_SERVER).o -o $(NAME_SERVER)
 
 clean:
-	rm $(NAME).o $(NAME)
+	rm $(NAME_SERVER).o $(NAME_SERVER)

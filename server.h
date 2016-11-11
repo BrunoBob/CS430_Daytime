@@ -12,7 +12,7 @@
 
 #include <pthread.h>
 
-#define DT_SERVER "129.6.15.28"
+#define DT_SERVER "129.6.15.30"
 #define DT_PORT "13"
 
 #define SERVER_PORT 7777
@@ -20,6 +20,7 @@
 
 #define MAX_DAYTIME_LENGTH 80
 #define OTM '*'
+#define MAX_TRY_TIME 5
 
 typedef struct{
   int year;

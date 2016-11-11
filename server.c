@@ -1,13 +1,8 @@
 #include "server.h"
 
-int main(int argc, char* argv[]){
-  launchServer();
 
-  return 0;
-}
-
+//Connect to the nist server
 int connect_to_serv(){
-
   struct sockaddr_in addr;
   memset(&addr, 0, sizeof(addr)); //Fill the struct with zeros
 
@@ -23,31 +18,34 @@ int connect_to_serv(){
 
   if(connect(csocket, (struct sockaddr *) &addr, sizeof(struct sockaddr)) == -1){//connect to the server
     perror("ERROR : can't connect to the server\n");
-    exit(1);
+    return -1;
   } else {
     printf("Successfully connected to server\n");
   }
   return csocket;
 }
 
+//Disconnect from a server
 void deconnect(int csocket){
   shutdown(csocket, 0);
 }
 
+//Read the time data received from the nist server
 char* readLine(int csocket){
   char* buffer =  (char*) malloc(sizeof(char));
   char* daytime = (char*) malloc(sizeof(char)*MAX_DAYTIME_LENGTH);
   int index = 0;
-
-  //test
-
+  int try = 0;
 
   while(buffer[0] != OTM){ //while not OTM char
     if(recv(csocket, buffer, sizeof(char), 0) != 1){ //Read the next char
-      perror("ERROR : can't recv the character");
-      exit(1);
+      try++;
+      if(try >= MAX_TRY_TIME){
+        perror("ERROR : error receiving time from nist server");
+        return NULL;
+      }
     }
-    if(buffer[0] != OTM){ // If not OTM put it in the string
+    else if(buffer[0] != OTM){ // If not OTM put it in the string
       daytime[index] = buffer[0];
       index++;
     }
@@ -60,25 +58,31 @@ char* readLine(int csocket){
   return daytime; //Return the daytime
 }
 
+//Parse the string from the server and return data
 daytime getTime(char* timeString){
-  daytime currentTime;// = (daytime) malloc(sizeof(currentTime));
+  daytime currentTime;
 
-  currentTime.year = getData(7 ,2, timeString);
-  currentTime.month = getData(10, 2, timeString);
-  currentTime.day = getData(13, 2, timeString);
-  currentTime.hours = getData(16, 2, timeString);
-  currentTime.minutes = getData(19, 2, timeString);
-  currentTime.seconds = getData(22, 2, timeString);
+  if(timeString != NULL){
+    currentTime.year = getData(7 ,2, timeString);
+    currentTime.month = getData(10, 2, timeString);
+    currentTime.day = getData(13, 2, timeString);
+    currentTime.hours = getData(16, 2, timeString);
+    currentTime.minutes = getData(19, 2, timeString);
+    currentTime.seconds = getData(22, 2, timeString);
+  }
 
   return currentTime;
 }
 
+
+//Get a piece of data from time string
 int getData(int position, int size, char* string){
   char* buffer = (char*)malloc(sizeof(char)*size);
   memcpy(buffer, string+position, size);
   return atoi(buffer);
 }
 
+//Whenever a new client is connected
 void* newClient(void* arg){
   Client client = *((Client*) arg);
 
@@ -87,58 +91,71 @@ void* newClient(void* arg){
   //Update the time with NIST server
   char* timeString = NULL;
   daytime currentTime;
-  int clientSocket;
+  int serverSocket;
 
-  clientSocket = connect_to_serv();
+  serverSocket = connect_to_serv();
 
-  timeString = readLine(clientSocket);
+  timeString = readLine(serverSocket);
 
   currentTime = getTime(timeString);
 
-  deconnect(clientSocket);
+  deconnect(serverSocket);
 
   printf("Updated time : %d-%d-%d %d:%d:%d\n", currentTime.year, currentTime.month, currentTime.day, currentTime.hours, currentTime.minutes, currentTime.seconds);
 
   char* bufferRcv = (char*)malloc(1*sizeof(char));
-  char* bufferSend = (char*)malloc(2*sizeof(char));
+
 
   if(recv(client.socket, bufferRcv, 1, 0) < 0){ //Read receving data from socket
     perror("Error : not receiving request from socket");
     exit(1);
   }
 
-  switch (bufferRcv[0]) {
-    case '0':
-      sprintf(bufferSend, "%d", currentTime.year);
+  if(timeString == NULL || serverSocket == -1){ //If time not updated send error message
+    char* bufferSend = (char*)malloc(100*sizeof(char));
+    bufferSend = "Error with nist server\n";
+    if(send(client.socket, bufferSend, 23, 0) == -1){
+      perror("Error : not sending time to socket");
+      exit(1);
+    }
+  }
+  else{
+
+    //Look at the requested data and send the one wanted
+    char* bufferSend = (char*)malloc(3*sizeof(char));
+
+    switch (bufferRcv[0]) {
+      case '0':
+      sprintf(bufferSend, "%d\n", currentTime.year);
       printf("Year requested\n" );
       break;
-    case '1':
-      sprintf(bufferSend, "%d", currentTime.month);
+      case '1':
+      sprintf(bufferSend, "%d\n", currentTime.month);
       printf("Month requested\n" );
       break;
-    case '2':
-      sprintf(bufferSend, "%d", currentTime.day);
+      case '2':
+      sprintf(bufferSend, "%d\n", currentTime.day);
       printf("Day requested\n" );
       break;
-    case '3':
-      sprintf(bufferSend, "%d", currentTime.hours);
+      case '3':
+      sprintf(bufferSend, "%d\n", currentTime.hours);
       printf("Hours requested\n" );
       break;
-    case '4':
-      sprintf(bufferSend, "%d", currentTime.minutes);
+      case '4':
+      sprintf(bufferSend, "%d\n", currentTime.minutes);
       printf("Minutes requested\n" );
       break;
-    case '5':
-      sprintf(bufferSend, "%d", currentTime.seconds);
+      case '5':
+      sprintf(bufferSend, "%d\n", currentTime.seconds);
       printf("Seconds requested\n" );
       break;
-  }
+    }
 
-  if(send(client.socket, bufferSend, 2, 0) == -1){
-    perror("Error : not sending time to socket");
-    exit(1);
+    if(send(client.socket, bufferSend, 3, 0) == -1){
+      perror("Error : not sending time to socket");
+      exit(1);
+    }
   }
-
   sleep(1);
 
   printf("\nClient number %d disconnected\n", client.number);
@@ -213,4 +230,9 @@ void launchServer(){
       }
     }
   }
+}
+
+int main(int argc, char* argv[]){
+  launchServer();
+  return 0;
 }

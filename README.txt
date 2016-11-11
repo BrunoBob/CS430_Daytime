@@ -19,4 +19,5 @@ Protocol between Client in c and server in java:
                                                 - '4' = Minutes requested
                                                 - '5' = Seconds requested
 
-  Server send back the requested data (3char) : 2char for data + end of line char
+  Server send back the requested data :         -If time updated by NIST server : (3char) 2char for data + end of line char
+                                                -Error message : If didn't manage to get the time

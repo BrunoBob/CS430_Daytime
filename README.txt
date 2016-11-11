@@ -20,4 +20,4 @@ Protocol between Client in c and server in java:
                                                 - '5' = Seconds requested
 
   Server send back the requested data :         -If time updated by NIST server : (3char) 2char for data + end of line char
-                                                -Error message : If didn't manage to get the time
+                                                -If didn't manage to get the time : Error message (23 char) 
